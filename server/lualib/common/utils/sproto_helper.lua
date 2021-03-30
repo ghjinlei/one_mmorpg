@@ -43,6 +43,16 @@ function sproto_helper.handle(name, args, response, ...)
 	return response and response(ret or empty_table)
 end
 
+function sproto_helper.handle_with_data(data, name, args, response, ...)
+	local handler = msg_handlers[name]
+	if not handler then
+		return false, "sproto does not include" .. name
+	end
+
+	local ret = handler(data, args, ...)
+	return response and response(ret or empty_table)
+end
+
 function sproto_helper.pack_msg(proto_name, args, session)
 	return sproto_request(proto_name, args, session)
 end
