@@ -31,6 +31,7 @@ function Client.new(fd, addr)
 		fd = fd,
 		addr = addr,
 		salt = gen_salt(),
+		accountid = nil,
 		userinfo = nil,
 		mq = skynet_queue(),
 	}
@@ -41,28 +42,48 @@ end
 function Client:handshake(args)
 	logger.infof("hand_shake,operator=%s,channel=%s,platform=%s,openid=%s,appid=%s,os=%s,imei=%s,idfa=%s", 
 		tostring(args.operator), tostring(args.channel), tostring(args.platform), tostring(args.openid), tostring(args.appid), tostring(os), tostring(imei), tostring(idfa))
+
 	self.userinfo = args
+
+	-- 超时检查
+	self._timerid = TIMER.table_add_timer(self, config_system.auth.max_auth_time, 0, 1, function()
+		if self._finish then
+			return
+		end
+		logger.infof("client_handshake_timeout,operator=%s,channel=%s,platform=%s,openid=%s")
+		self:close_fd("auth timeout")
+	end)
+
 	return {code = 0, salt = self.salt, patch = config_system.client_patch}
 end
 
 function Client:auth(args)
+	-- 可能已经超时
+	if self._finish then
+		return {code = 1}
+	end
+
 	logger.infof("auth,data=%s", tostring(args.data))
 
 	--TODO: 处理登录超时
+	TIMER.table_remove_timer(self, self._timerid)
 	--TODO: 认证合法性
 	--TODO: 检查是否封号
+	--
+	local userInfo = self.userInfo
+	-- 如果有多个平台，各平台公用角色，即账号ID=平台账号
+	self.accountid = tostring(userInfo.openId)
+
+	skynet.send(agentmgr, "lua", "hand_client", self)
 
 	-- 校验成功
-	self.finish = true
+	self._finish = true
 
-	local token = crypt.randomkey()
-	local userinfo = self.userinfo
-	local session = skynet.call(loginserver, "lua", "save_session", token, userinfo)
-
-	return {code = 0, session = session, token = token}
+	return {code = 0, openid = userinfo.openid}
 end
 
 function Client:close_fd(reason)
+	self._finish = true
 	client_map[self.fd] = nil
 	skynet.send(gate, "lua", "close_fd", skynet.self(), self.fd, reason)
 end
@@ -80,7 +101,7 @@ end
 
 function Client:handle_client_msg(msg)
 	self.mq(function()
-		if self.finish then --认证结束
+		if self._finish then --认证结束
 			self:close_fd("dumplicated client login packet")
 			return
 		end
@@ -100,7 +121,7 @@ function Client:handle_client_msg(msg)
 			self:send_bin_msg(result)
 		end
 
-		if self.finish then
+		if self._finish then
 			client_map[self.fd] = nil
 		end
 	end)

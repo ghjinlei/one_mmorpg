@@ -30,7 +30,7 @@ function is_module_imported(relapath)
 end
 
 local function loadluafile(relapath)
-	return g_loadfile(relapath, nil)
+	return loadfile(relapath, nil)
 end
 
 local function call_module_init(module, updated)

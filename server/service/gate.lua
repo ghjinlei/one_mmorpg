@@ -151,7 +151,7 @@ function CMD.open(source)
 	assert(not socket)
 	local ip, port = table.unpack(string.split(config_gate.listen_addr, ":"))
 	port = tonumber(port)
- 
+
 	socket = socketdriver.listen(ip, port)
 	logger.infof("******************socket open %d %s:%d******************", socket, ip, port)
 	socketdriver.start(socket)
@@ -161,14 +161,14 @@ end
 -- 关闭监听
 function CMD.close()
 	logger.infof("******************socket close %d***********************", socket or 0)
-	if not socket then 
-		return 
+	if not socket then
+		return
 	end
 	socketdriver.close(socket)
 	socket = nil
 end
 
-function CMD.forward_agent(source, fd, client, address)
+function CMD.forward(source, fd, client, address)
 	local c = assert(connection[fd])
 	c.client = client or 0
 	c.agent = address or source
@@ -205,6 +205,7 @@ function CMD.set_auth_list(auths)
 end
 
 skynet.start(function()
-	skynet_helper.dispatch_lua_by_cmd(CMD)
+	skynet_helper.register_lua_cmds(CMD)
+	skynet_helper.dispatch_lua_cmds()
 end)
 

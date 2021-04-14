@@ -23,18 +23,18 @@ function main()
 	protoloader = skynet.uniqueservice("protoloader")
 
 	gate = skynet.newservice("gate")
-
+--
 	agentmgr = skynet.newservice("agentmgr", gate)
-
-	-- 启动多个auth
-	for i = 1, config_auth.auth_count do
-		local auth = skynet.newservice("auth", gate, agentmgr)
-	end
-	skynet.call(gate, "lua", "set_auth_list", auth_list)
-
-	skynet.call(agentmgr, "lua", "start")
-
-	skynet.call(gate, "lua", "open")
+--
+--	-- 启动多个auth
+--	for i = 1, config_auth.auth_count do
+--		local auth = skynet.newservice("auth", gate, agentmgr)
+--	end
+--	skynet.call(gate, "lua", "set_auth_list", auth_list)
+--
+--	skynet.call(agentmgr, "lua", "start")
+--
+--	skynet.call(gate, "lua", "open")
 end
 
 local CMD = {}

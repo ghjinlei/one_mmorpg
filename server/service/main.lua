@@ -13,6 +13,6 @@ skynet.start(function()
 		os.exit()
 	end)
 
-	skynet_helper.dispatch_lua_cmd()
+	skynet_helper.dispatch_lua_cmds()
 	skynet.register ".main"
 end)
