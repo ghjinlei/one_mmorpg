@@ -10,7 +10,7 @@ local skynet = require "skynet"
 local mongo = require "skynet.db.mongo"
 local skynet_helper = require "common.utils.skynet_helper"
 local logger = require "common.utils.logger"
-dofile("script/lualib/common/base/preload.lua")
+dofile("lualib/common/base/preload.lua")
 
 local client = nil
 local the_db = nil
@@ -67,7 +67,7 @@ function CMD.close()
 	end
 end
 
-local collection2index { 
+local collection2index = { 
 -- [collection_name] = {field_name, ...}
 }
 function CMD.ensure_indexs()

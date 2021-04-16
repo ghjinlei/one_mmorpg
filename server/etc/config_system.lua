@@ -21,15 +21,22 @@ config.dbserver.db_name = tostring(config.server.host_id)
 config.log = {}
 config.log.level = 1
 config.log.level_for_console = 1
-config.log.dir = "../log"
+config.log.dir = "../log_server"
 config.log.cache_count = 1
 config.log.time_format = "%Y%m%d %H:%M:%S"
+
+config.auth = {}
+config.auth.auth_count = 10
+config.auth.max_auth_time = 10
 
 config.agentmgr = {}
 config.agentmgr.max_agent_count = 5000
 config.agentmgr.pre_alloc_agent_count = 1000
 config.agentmgr.agent_per_database = 100
 config.agentmgr.max_enter_per_batch = 100
+
+config.agent = {}
+config.agent.max_wait_heart_beat_time = 10
 
 return config
 

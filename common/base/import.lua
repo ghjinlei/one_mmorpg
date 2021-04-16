@@ -64,9 +64,10 @@ local function do_import(relapath, env)
 	setfenv(func, new)()
 
 	new.__import_time__ = os.time()
-	mt.__newindex = insert_var_with_warning
 
 	call_module_init(new, false)
+
+	mt.__newindex = insert_var_with_warning
 
 	return new
 end

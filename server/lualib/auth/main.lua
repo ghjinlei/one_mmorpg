@@ -8,7 +8,6 @@ Description :
 local skynet = require "skynet"
 local skynet_queue = require "skynet.queue"
 local socket = require "skynet.socket"
-local crypt = require "skynet.crypt"
 local logger = require "common.utils.logger"
 local config_system = require "config_system"
 local skynet_helper = require "common.utils.skynet_helper"
@@ -16,7 +15,7 @@ local sproto_helper = require "common.utils.sproto_helper"
 
 gate, agentmgr = false, false
 
-local client_map = { }
+local fd2client = { }
 
 local function gen_salt()
 	local a = math.random(1 << 31)
@@ -46,7 +45,7 @@ function Client:handshake(args)
 	self.userinfo = args
 
 	-- 超时检查
-	self._timerid = TIMER.table_add_timer(self, config_system.auth.max_auth_time, 0, 1, function()
+	self._timerid = TIMER.table_call_after(self, config_system.auth.max_auth_time, function()
 		if self._finish then
 			return
 		end
@@ -70,10 +69,11 @@ function Client:auth(args)
 	--TODO: 认证合法性
 	--TODO: 检查是否封号
 	--
-	local userInfo = self.userInfo
+	local userinfo = self.userinfo
 	-- 如果有多个平台，各平台公用角色，即账号ID=平台账号
-	self.accountid = tostring(userInfo.openId)
+	self.accountid = tostring(userinfo.openid)
 
+	self.mq = nil
 	skynet.send(agentmgr, "lua", "hand_client", self)
 
 	-- 校验成功
@@ -84,18 +84,14 @@ end
 
 function Client:close_fd(reason)
 	self._finish = true
-	client_map[self.fd] = nil
+	fd2client[self.fd] = nil
 	skynet.send(gate, "lua", "close_fd", skynet.self(), self.fd, reason)
 end
 
 function Client:send_bin_msg(msg)
 	if self.fd then
-		local packet, err = lrc4.xor_pack(msg, 100)
-		if packet then
-			socket.write(self.fd, packet)
-		else
-			logger.errorf("send_bin_msg error:%s", tostring(err))
-		end
+		local packet = string.pack(">s2", msg)
+		socket.write(self.fd, packet)
 	end
 end
 
@@ -111,9 +107,9 @@ function Client:handle_client_msg(msg)
 			self:close_fd("handle_client_msg error: dispatch")
 			return
 		end
-		local ok, ret_data = pcall(sproto_helper., msg)
+		local ok, result = pcall(sproto_helper.handle, name, args, response, self)
 		if not ok then
-			self:close_fd("handle_client_msg error: dispatch")
+			self:close_fd(string.format("handle_client_msg error: handle(%s)", tostring(result)))
 			return
 		end
 
@@ -122,36 +118,37 @@ function Client:handle_client_msg(msg)
 		end
 
 		if self._finish then
-			client_map[self.fd] = nil
+			fd2client[self.fd] = nil
 		end
 	end)
 end
 
 local SOCKET = {}
 function SOCKET.data(fd, msg)
-	local client = client_map[fd]
+	local client = fd2client[fd]
 	if not client then
 		logger.warningf("SOCKET.data:fd=%d,client is missing", fd)
 		return
 	end
-	local raw_msg, err = client.c_rc4:unpack(msg)
+
+	local raw_msg = msg           -- 为了测试方便,暂时不做任何数据加密解密
 	logger.debugf("SOCKET.data:fd=%d,raw_msg=%s,len=%d", fd, tostring(raw_msg), #raw_msg)
 	client:handle_client_msg(raw_msg)
 end
 
 function SOCKET.open(fd, address)
 	logger.debugf("SOCKET.open:fd=%d,address=%s", fd, address)
-	assert(not client_map[fd])
+	assert(not fd2client[fd])
 	local client = Client.new(fd, address)
-	client_map[fd] = client
+	fd2client[fd] = client
 end
 
 local function handle_socket_close(fd)
-	local client = client_map[fd]
+	local client = fd2client[fd]
 	if not client then
 		return
 	end
-	client_map[fd] = nil
+	fd2client[fd] = nil
 end
 
 function SOCKET.close(fd)
@@ -173,9 +170,16 @@ function CMD.socket(cmd, ...)
 	return SOCKET[cmd](...)
 end
 
-function __system_startup__(module)
-	sproto_helper.reg_msghandler("handshake", Client.handshake)
-	sproto_helper.reg_msghandler("auth", Client.auth)
+local function register_msghandler(name, func)
+	local func = function(args, client)
+		func(client, args)
+	end
+	sproto_helper.reg_msghandler(name, func)
+end
+
+function __init__(module)
+	register_msghandler("AUTH_handshake", Client.handshake)
+	register_msghandler("AUTH_auth", Client.auth)
 
 	skynet_helper.register_lua_cmds(CMD)
 end

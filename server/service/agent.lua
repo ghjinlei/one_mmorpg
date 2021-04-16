@@ -1,23 +1,20 @@
 --[[
 ModuleName :
-Path : auth.lua
+Path : service/agent.lua
 Author : jinlei
-CreateTime : 2018-11-11 01:33:27
+CreateTime : 2021-04-14 20:07:16
 Description :
 --]]
 
 local skynet = require "skynet"
-local skynet_helper = require "common.utils.skynet_helper"
 local sproto_helper = require "common.utils.sproto_helper"
+local skynet_helper = require "common.utils.skynet_helper"
 dofile("lualib/common/base/preload.lua")
 
-MAIN = import("lualib/auth/main.lua")
-MAIN.gate, MAIN.agentmgr = ...
+MAIN = import("lualib/agent/main.lua")
+MAIN.gate = ...
 
 skynet.start(function()
 	sproto_helper.load(1)
-
 	skynet_helper.dispatch_lua_cmds()
 end)
-
-

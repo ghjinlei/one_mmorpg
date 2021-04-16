@@ -57,7 +57,7 @@ local function table_add_timerid(tbl, timerid)
 	if not tbl.__timers then
 		tbl.__timers = {}
 	end
-	tbl.__timers = {}
+	tbl.__timers[timerid] = true
 	return timerid
 end
 

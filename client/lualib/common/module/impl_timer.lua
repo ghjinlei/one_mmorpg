@@ -1,6 +1,6 @@
 --[[
 ModuleName :
-Path : lualib/common/module/impl_timer.lua
+Path : lualib/common/module/serv_timer.lua
 Author : jinlei
 CreateTime : 2019-06-21 15:21:44
 Description :
@@ -29,7 +29,6 @@ local function new_timer(start, interval, count, func)
 	if timer.interval < 1 then
 		timer.interval = 1
 	end
-	return timer
 end
 
 function add_timer(start, interval, count, func)
@@ -61,9 +60,8 @@ function add_timer(start, interval, count, func)
 
 		skynet.timeout(timer.interval, trigger_func)
 	end
-	skynet.timeout(timer.start, trigger_func)
 
-	return timerid
+	skynet.timeout(timer.start, trigger_func)
 end
 
 function remove_timer(timerid)

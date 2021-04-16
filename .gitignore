@@ -1,1 +1,5 @@
-/log/
+/log_server/
+/log_client/
+*.so
+*.dSYM
+.DS_Store

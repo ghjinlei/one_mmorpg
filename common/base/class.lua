@@ -31,11 +31,11 @@ local function set_classmetatable(cls)
 	setmetatable(cls.__class_mt, readonly_mt)
 end
 
-local function inherit_with_copy(baseCls, cls)
+local function inherit_with_copy(basecls, cls)
 	cls = cls or {}
 
-	if not basecls.__superclass then
-		basecls.__superclass = {}
+	if not basecls.__subclass then
+		basecls.__subclass = {}
 		setmetatable(basecls.__subclass, {__mode = "v"})
 	end
 	table.insert(basecls.__subclass, cls)
@@ -53,7 +53,7 @@ local function inherit_with_copy(baseCls, cls)
 		return cls:new(...)
 	end
 	setmetatable(cls, mt)
-	setClassMetatable(cls)
+	set_classmetatable(cls)
 
 	return cls
 end
